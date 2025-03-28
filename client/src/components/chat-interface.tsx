@@ -51,7 +51,7 @@ export function ChatInterface({ userId, currency, monthlyTotal }: ChatInterfaceP
         amount: data.amount,
         categoryId: data.categoryId,
         description: data.description || "",
-        date: new Date(data.date),
+        date: data.date, // Send as string, not Date object
         location: data.location || "",
         currency: data.currency
       });
