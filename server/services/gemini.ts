@@ -5,7 +5,7 @@ import { AIExpense } from "@shared/schema";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 // Get the model - use "gemini-1.5-pro" instead of "gemini-pro" for the latest API version
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export async function extractExpenseFromText(text: string): Promise<AIExpense | null> {
   try {
@@ -14,23 +14,11 @@ export async function extractExpenseFromText(text: string): Promise<AIExpense | 
     const prompt = `
       Extract expense information from the following Vietnamese or English text: "${text}"
       
-      I need you to parse the following data:
-      1. Amount (as a number, without currency symbols)
-      2. Category (one of: Food, Transport, Entertainment, Groceries, Utilities, Housing, Healthcare, Shopping, Other)
-      3. Date (infer today if not specified, use ISO format)
-      4. Description (brief explanation of the expense)
-      5. Location (if provided)
-      6. Currency (default to "VND" if not specified)
-      
+      As a financial expert, your task is to record, analyze, and support your own spending habits.
       Important notes for parsing Vietnamese text:
       - "triệu" or "tr" means million, so "1 triệu 2" = 1,200,000 VND
       - "nghìn" or "ngàn" or "k" means thousand, so "50k" = 50,000 VND
-      - Common categories in Vietnamese:
-        * "ăn", "đồ ăn", "thức ăn", "bún", "phở" = Food
-        * "đi lại", "xe", "taxi", "bus" = Transport
-        * "giải trí", "xem phim", "game" = Entertainment
-        * "mua sắm", "quần áo" = Shopping
-        * "điện", "nước", "ga", "tiện ích" = Utilities
+      
       
       IMPORTANT: Your response must ONLY contain a valid JSON object and nothing else. No explanations, no markdown, just the JSON object directly.
       Parse numerical values correctly.
