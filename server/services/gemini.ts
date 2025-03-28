@@ -4,29 +4,40 @@ import { AIExpense } from "@shared/schema";
 // Initialize the Google Generative AI with the API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-// Get the model
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// Get the model - use "gemini-1.5-pro" instead of "gemini-pro" for the latest API version
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
 export async function extractExpenseFromText(text: string): Promise<AIExpense | null> {
   try {
     console.log("Analyzing expense text:", text);
     
     const prompt = `
-      Extract expense information from the following text: "${text}"
+      Extract expense information from the following Vietnamese or English text: "${text}"
       
       I need you to parse the following data:
-      1. Amount (as a number, without currency)
+      1. Amount (as a number, without currency symbols)
       2. Category (one of: Food, Transport, Entertainment, Groceries, Utilities, Housing, Healthcare, Shopping, Other)
       3. Date (infer today if not specified, use ISO format)
       4. Description (brief explanation of the expense)
       5. Location (if provided)
       6. Currency (default to "VND" if not specified)
       
+      Important notes for parsing Vietnamese text:
+      - "triệu" or "tr" means million, so "1 triệu 2" = 1,200,000 VND
+      - "nghìn" or "ngàn" or "k" means thousand, so "50k" = 50,000 VND
+      - Common categories in Vietnamese:
+        * "ăn", "đồ ăn", "thức ăn", "bún", "phở" = Food
+        * "đi lại", "xe", "taxi", "bus" = Transport
+        * "giải trí", "xem phim", "game" = Entertainment
+        * "mua sắm", "quần áo" = Shopping
+        * "điện", "nước", "ga", "tiện ích" = Utilities
+      
       IMPORTANT: Your response must ONLY contain a valid JSON object and nothing else. No explanations, no markdown, just the JSON object directly.
       Parse numerical values correctly.
       
-      Example response:
+      Example responses:
       {"amount":150000,"category":"Food","date":"2023-05-10T12:00:00Z","description":"Lunch at restaurant","location":"Local Restaurant","currency":"VND"}
+      {"amount":1200000,"category":"Entertainment","date":"2023-05-10T12:00:00Z","description":"Game disc purchase","location":"","currency":"VND"}
     `;
 
     const generationConfig = {
@@ -105,22 +116,70 @@ export async function extractExpenseFromText(text: string): Promise<AIExpense | 
           // This is a fallback when all parsing attempts fail
           console.log("Attempting to construct expense from text input directly");
           
-          // Simple fallback extraction for amount and category
+          // Advanced fallback extraction for amount and category
           let amount = 0;
-          const amountMatch = text.match(/(\d+)[k]?/);
-          if (amountMatch) {
-            amount = parseInt(amountMatch[1]);
-            if (text.includes('k')) amount *= 1000;
+          let lowerText = text.toLowerCase();
+          
+          // Check for million in Vietnamese
+          if (lowerText.includes('triệu') || lowerText.includes('tr')) {
+            const millionMatch = lowerText.match(/(\d+)[\s]*(triệu|tr)[\s]*(\d*)/);
+            if (millionMatch) {
+              const millions = parseInt(millionMatch[1]) || 0;
+              const thousands = parseInt(millionMatch[3]) || 0;
+              
+              amount = (millions * 1000000) + (thousands * 100000);
+              console.log(`Parsed Vietnamese million amount: ${millions} million and ${thousands} hundred thousand = ${amount}`);
+            }
+          } 
+          // Check for thousand in Vietnamese/shorthand
+          else if (lowerText.includes('nghìn') || lowerText.includes('ngàn') || lowerText.includes('k')) {
+            const thousandMatch = lowerText.match(/(\d+)[\s]*(nghìn|ngàn|k)/);
+            if (thousandMatch) {
+              amount = parseInt(thousandMatch[1]) * 1000;
+              console.log(`Parsed thousand amount: ${amount}`);
+            }
+          } 
+          // Simple number extraction
+          else {
+            const numberMatch = lowerText.match(/(\d+)/);
+            if (numberMatch) {
+              amount = parseInt(numberMatch[1]);
+              console.log(`Parsed direct amount: ${amount}`);
+            }
           }
           
-          // Basic category detection
+          // Advanced category detection
           let category = "Other";
-          if (text.toLowerCase().includes("food") || text.toLowerCase().includes("eat") || 
-              text.toLowerCase().includes("lunch") || text.toLowerCase().includes("dinner")) {
+          
+          // Vietnamese food terms
+          if (lowerText.includes("ăn") || lowerText.includes("thức ăn") || 
+              lowerText.includes("bún") || lowerText.includes("phở") || 
+              lowerText.includes("cơm") || lowerText.includes("đồ ăn")) {
             category = "Food";
-          } else if (text.toLowerCase().includes("transport") || text.toLowerCase().includes("uber") || 
-                     text.toLowerCase().includes("taxi") || text.toLowerCase().includes("bus")) {
+          } 
+          // English food terms
+          else if (lowerText.includes("food") || lowerText.includes("eat") || 
+                 lowerText.includes("lunch") || lowerText.includes("dinner") ||
+                 lowerText.includes("restaurant")) {
+            category = "Food";
+          } 
+          // Transport terms
+          else if (lowerText.includes("đi lại") || lowerText.includes("xe") || 
+                 lowerText.includes("taxi") || lowerText.includes("bus") ||
+                 lowerText.includes("transport") || lowerText.includes("uber")) {
             category = "Transport";
+          } 
+          // Entertainment terms
+          else if (lowerText.includes("giải trí") || lowerText.includes("xem phim") || 
+                 lowerText.includes("game") || lowerText.includes("phim") ||
+                 lowerText.includes("entertainment") || lowerText.includes("movie")) {
+            category = "Entertainment";
+          } 
+          // Shopping terms
+          else if (lowerText.includes("mua") || lowerText.includes("mua sắm") || 
+                 lowerText.includes("quần áo") || lowerText.includes("shopping") ||
+                 lowerText.includes("clothes") || lowerText.includes("mall")) {
+            category = "Shopping";
           }
           
           const fallbackExpense = {
