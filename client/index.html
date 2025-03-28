@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExpenseAI - Smart Expense Tracking</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .chat-message {
+      max-width: 80%;
+    }
+    .category-tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 16px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    /* Dark mode toggle effects */
+    .dark-mode-toggle {
+      transition: all 0.3s ease;
+    }
+    .dark .dark-mode-toggle {
+      transform: rotate(180deg);
+    }
+    .scroll-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scroll-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .scroll-container::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.5);
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body class="bg-background dark:bg-dark-bg text-gray-800 dark:text-gray-100 transition-colors duration-200">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
