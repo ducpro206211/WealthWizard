@@ -259,19 +259,48 @@ export function ChatInterface({ userId, currency, monthlyTotal }: ChatInterfaceP
     
     // Process message
     const lowerCaseMessage = trimmedMessage.toLowerCase();
+    
+    // Check for summary request in English and Vietnamese
     if (
       lowerCaseMessage.includes("summary") || 
       lowerCaseMessage.includes("show me my expenses") || 
-      lowerCaseMessage.includes("this month")
+      lowerCaseMessage.includes("this month") ||
+      lowerCaseMessage.includes("tổng kết") ||
+      lowerCaseMessage.includes("chi tiêu") ||
+      lowerCaseMessage.includes("báo cáo") ||
+      lowerCaseMessage.includes("tháng này")
     ) {
       // Generate monthly summary
       fetchMonthlySummaryMutation.mutate();
-    } else if (
+    } 
+    // Check for expense-related keywords in English and Vietnamese
+    else if (
+      // Check for expense patterns in Vietnamese
+      lowerCaseMessage.includes("mua") || 
+      lowerCaseMessage.includes("trả") || 
+      lowerCaseMessage.includes("chi") ||
+      lowerCaseMessage.includes("tiêu") ||
+      lowerCaseMessage.includes("tốn") ||
+      lowerCaseMessage.includes("triệu") || // million in Vietnamese
+      lowerCaseMessage.includes("nghìn") || // thousand in Vietnamese
+      lowerCaseMessage.includes("ngàn") || // thousand in Vietnamese
+      lowerCaseMessage.match(/\d+k/) || // number + k (e.g., 50k)
+      lowerCaseMessage.match(/\d+\s*k/) || // number + space + k
+      lowerCaseMessage.match(/\d+\s*đồng/) || // number + dong
+      lowerCaseMessage.match(/\d+\s*vnd/) || // number + vnd
+      
+      // English keywords
       lowerCaseMessage.includes("spent") || 
       lowerCaseMessage.includes("paid") || 
       lowerCaseMessage.includes("bought") ||
-      lowerCaseMessage.includes("purchased")
+      lowerCaseMessage.includes("purchased") ||
+      lowerCaseMessage.includes("cost") ||
+      lowerCaseMessage.includes("expense") ||
+      
+      // Number detection
+      lowerCaseMessage.match(/\d+/)
     ) {
+      console.log("Detected expense-related content:", trimmedMessage);
       // Analyze expense
       analyzeExpenseMutation.mutate(trimmedMessage);
     } else {
